@@ -17,7 +17,7 @@ plt.ion()
 device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-# loading datasets
+# downloading datasets and create folder automatically
 train_loader = torch.utils.data.DataLoader(
     datasets.MNIST(root='~/datasets', train=True, download=True,
                    transform=transforms.Compose([

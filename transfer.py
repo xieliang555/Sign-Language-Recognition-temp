@@ -14,7 +14,7 @@ data_transforms = transforms.Compose([
     transforms.ToTensor()])
 
 
-# loading datasets
+# loading datasets (create the image folder manually)
 train_loader = torch.utils.data.DataLoader(
 	datasets.ImageFolder('~/datasets/partial_imageNet/train', data_transforms), 
 	batch_size=4, shuffle=True, num_workers=4)
