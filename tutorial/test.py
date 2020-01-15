@@ -53,6 +53,9 @@ hypotheses = [hyp1, hyp2]
 bleu = corpus_bleu(list_of_references, hypotheses)
 print(bleu)
 '''
+
+
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 TRG = Field(tokenize = "spacy",
@@ -70,12 +73,12 @@ train_set, dev_set, test_set = TabularDataset.splits(path=csv_dir,
 
 
 TRG.build_vocab(train_set, min_freq = 2)
-# print(help(TRG))
+print(type(TRG.vocab.itos))
 
 a = '__ON__ LIEB ZUSCHAUER ABEND WINTER GESTERN loc-NORD SCHOTTLAND loc-REGION UEBERSCHWEMMUNG AMERIKA IX'.lower().split()
 b= 'loc-WEST WARM loc-WEST BLEIBEN KUEHL'.lower().split()
-c= TRG.process([a,b])
-print(c.shape)
+# c= TRG.process([a,b])
+# print(c.shape)
 
 train_iter, dev_iter, test_iter = BucketIterator.splits(
         (train_set, dev_set, test_set),batch_size = 2, device = device)

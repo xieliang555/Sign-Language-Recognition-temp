@@ -18,3 +18,11 @@ if __name__ =="__main__":
 	print("main")
 	# 当前父进程是sublime进程
 	print("当前线程： {}, 父线程： {}\n".format(os.getpid(), os.getppid()))
+
+
+
+	# task
+	# 当前线程： 24242, 父线程： 24239
+
+	# main
+	# 当前线程： 24239, 父线程： 22497
