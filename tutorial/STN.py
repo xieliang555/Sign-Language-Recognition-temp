@@ -34,7 +34,7 @@ test_loader = torch.utils.data.DataLoader(
 	batch_size=64, shuffle=True, num_workers=4)
 
 
-# define modele
+# define model
 class Net(nn.Module):
 	def __init__(self):
 		super(Net, self).__init__()

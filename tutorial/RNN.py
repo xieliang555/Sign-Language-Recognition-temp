@@ -23,21 +23,33 @@ TRG = Field(tokenize = "spacy",
             eos_token = '<eos>',
             lower = True)
 
-# load/download raw snetnence pairs,then tokenize
+# load/download raw snetnence pairs,then tokenize using space and en/de
 train_data, valid_data, test_data = Multi30k.splits(exts = ('.de', '.en'),
                                                     fields = (SRC, TRG))
+
 
 # build vocabulary
 SRC.build_vocab(train_data, min_freq = 2)
 TRG.build_vocab(train_data, min_freq = 2)
+# print(SRC.vocab.stoi)
+print(SRC.vocab.itos)
 
-print(len(SRC.vocab))
 
 # define batch iterators/dataloaders
 train_ietrator, valid_iterator, test_iterator = BucketIterator.splits(
 	(train_data, valid_data, test_data),
-	batch_size = 128,
+	batch_size = 2,
 	device = device)
+
+
+for i, batch in enumerate(train_ietrator):
+	print(batch.src.shape)
+	print(batch.trg.shape)
+	print(batch.src)
+	print(batch.trg)
+
+	if i==0:
+		break
 
 
 # define encoder class
