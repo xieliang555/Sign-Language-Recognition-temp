@@ -9,7 +9,43 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch import Tensor
 
+import sys
+import codecs
+sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+# field is the object for tokenize, padding and numericalize. 
+# The arguments define the tokenizer, language, and padding information
+SRC = Field(tokenize = 'spacy',
+			tokenizer_language = 'de',
+			init_token = '<sos>',
+			end_token = '<eos>',
+			lower = True)
+
+TRG = Field(tokenize = 'spacy',
+			tokenizer_language = 'en',
+			init_token = '<sos>',
+			end_token = '<eos>',
+			lower = True)
+
+
+train_data, dev_data, test_data = Multi30k.splits(exts= ('.de', '.en'),
+	fields = (SRC, TRG), root = '~/data/Multi30k', train = 'train', validation = 'val', test = 'test2016') 
+
+
+SRC.build_vocab(train_data, min_freq = 2)
+TRG.build_vocab(train_data, min_freq = 2)
+
+
+
+
+
+
+
+
+
 
 SRC = Field(tokenize = "spacy",
             tokenizer_language="de",

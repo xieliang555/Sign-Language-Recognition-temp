@@ -14,7 +14,7 @@ import pandas as pd
 
 __all__ = [
 
-	'process_annotations', 'collate_fn', 'PhoenixDataset'
+	'process_annotations', 'collate_fn', 'itos', 'PhoenixDataset'
 ]
 
 
@@ -68,8 +68,8 @@ def process_annotations(annotations, csv_dir='/media/xieliang555/新加卷/数�
 
 def collate_fn(batch):
 	'''
-		this function pad the variant sequence length to 
-		fixed length for DataLoader
+		this function pad the variant video sequence length to the
+		fixed length and preprocess the annotations for the DataLoader
 	'''
 	clips = [item['clip'] for item in batch ]
 	annotations = [item['annotation'].lower().split() for item in batch]
@@ -78,6 +78,28 @@ def collate_fn(batch):
 
 	return {'clip': clips_padded, 'annotation': annotations}
 
+
+def itos(annotations):
+	"""
+		transform numerica to text
+		this is the reverse function of process_annotations
+	"""
+	TRG = Field(tokenize = 'spacy',
+				tokenizer_language = 'de',
+				init_token = '<sos>',
+				eos_token = '<eos>',
+				lower = True)
+
+	train_set, dev_set, test_set = TabularDataset.splits(path = '.data/', 
+		train = 'train.annotations.csv', validation = 'dev.annotations.csv',
+		test = 'test.annotations.csv', format = 'csv', fields= [('TRG', TRG)])
+
+	TRG.build_vocab(train_set, min_freq = 2)
+
+	annotations = annotations.transpose(1,0)
+	text = [[TRG.vocab.itos[i] for i in annotation] for annotation in annotations]
+
+	return text
 
 
 class PhoenixDataset(object):
@@ -160,5 +182,3 @@ if __name__ == '__main__':
 	train_set = PhoenixDataset(train_csv_dir, train_root_dir, transforms=None)
 	train_set.statistic_analysis()
 
-
-	process_annotations()
