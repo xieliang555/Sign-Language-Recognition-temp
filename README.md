@@ -5,7 +5,7 @@
 
 
 ## Done
- - RWTH-PHOENIX-Weather 2014 dataset interface
+- RWTH-PHOENIX-Weather 2014 dataset interface
 
 ## In Progress
 - 3D CNN
