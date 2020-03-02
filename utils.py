@@ -1,87 +1,73 @@
-from torch.nn.utils.rnn import pad_sequence
-from torchtext.data import Field, TabularDataset
-import matplotlib.pyplot as plt
 import numpy as np
+import os
+import pandas as pd
+import glob
+
+from torchtext.data.metrics import bleu_score
+from jiwer import wer
 
 
-def process_annotations(annotations, csv_dir='/media/xieliang555/新加卷/数据集/phoenix2014-release/phoenix-2014-multisigner/annotations/manual'):
+def get_csv(root):
+    root = os.path.join(root, 'phoenix2014-release/phoenix-2014-multisigner')
+    root = os.path.join(root, 'annotations/manual/train.corpus.csv')
+    return pd.read_csv(root)
+
+
+def DatasetStatistic(root, mode='train'):
     '''
-            this function pad and numericalize the annotation batch
+    analysis the statistic of the RWTH-PHOENIX-Weather 2014 dataset
+    Args:
+        root: the whole data root
+        mode: 'train','dev', 'test'
+    return: 
+        max_len: maximum video length 
     '''
-    if not os.path.exists('.data/train.annotations.csv'):
-        csv_file = pd.read_csv(os.path.join(csv_dir, 'train.corpus.csv'))
-        data = [csv_file.iloc[i, 0].split('|')[3]
-                for i in range(len(csv_file))]
-        f = open('.data/train.annotations.csv', 'a')
-        for annotation in data:
-            f.write(annotation+'\n')
-        f.close()
+    
+    root = os.path.join(root, 'phoenix2014-release/phoenix-2014-multisigner')
+    video_root = os.path.join(root, 'features/fullFrame-210x260px/' + mode)
+    csv_path = os.path.join(root, 'annotations/manual/' + mode + '.corpus.csv')
 
-    if not os.path.exists('.data/dev.annotations.csv'):
-        csv_file = pd.read_csv(os.path.join(csv_dir, 'dev.corpus.csv'))
-        data = [csv_file.iloc[i, 0].split('|')[3]
-                for i in range(len(csv_file))]
-        f = open('.data/dev.annotations.csv', 'a')
-        for annotation in data:
-            f.write(annotation+'\n')
-        f.close()
-
-    if not os.path.exists('.data/test.annotations.csv'):
-        csv_file = pd.read_csv(os.path.join(csv_dir, 'test.corpus.csv'))
-        data = [csv_file.iloc[i, 0].split('|')[3]
-                for i in range(len(csv_file))]
-        f = open('.data/test.annotations.csv', 'a')
-        for annotation in data:
-            f.write(annotation+'\n')
-        f.close()
-
-    TRG = Field(tokenize="spacy",
-                tokenizer_language="de",
-                init_token='<sos>',
-                eos_token='<eos>',
-                lower=True)
-
-    train_set, dev_set, test_set = TabularDataset.splits(path='.data/',
-                                                         train='train.annotations.csv', validation='dev.annotations.csv',
-                                                         test='test.annotations.csv', format='csv', fields=[("TRG", TRG)])
-
-    TRG.build_vocab(train_set, min_freq=2)
-
-    return TRG.process(annotations)
+    csv_file = pd.read_csv(csv_path)
+    video_paths = [os.path.join(video_root, csv_file.iloc[i, 0].split('|')[1])
+                   for i in range(csv_file.shape[0])]
+    
+    video_lens = [len(glob.glob(path)) for path in video_paths]
+    return [max(video_lens), min(video_lens),
+            np.mean(video_lens), np.std(video_lens)]
 
 
-def collate_fn(batch):
+def itos(idx_seq, TRG):
     '''
-            this function pad the variant video sequence length to the
-            fixed length and preprocess the annotations for the DataLoader
+    Description:
+        denumericalize: convert the index sequence to the text sequence
     '''
-    clips = [item['clip'] for item in batch]
-    annotations = [item['annotation'].lower().split() for item in batch]
-    clips_padded = pad_sequence([clip for clip in clips], batch_first=True)
-    annotations = process_annotations(annotations)
-
-    return {'clip': clips_padded, 'annotation': annotations}
+    return [TRG.vocab.itos[idx] for idx in idx_seq]
 
 
-def itos(annotations):
-    """
-            transform numerica to text
-            this is the reverse function of process_annotations
-    """
-    TRG = Field(tokenize='spacy',
-                tokenizer_language='de',
-                init_token='<sos>',
-                eos_token='<eos>',
-                lower=True)
+def bleu_count(outputs, targets, TRG):
+    '''
+    sentence level
+    shape:
+        outputs: [T, N, E]
+        targets: [T, N]
+    '''
+    outputs = outputs.max(2)[1].transpose(0,1)
+    targets = targets.transpose(0,1)
+    candidate_corpus = [itos(idx_seq, TRG) for idx_seq in outputs]
+    references_corpus = [[itos(idx_seq, TRG)] for idx_seq in targets]
+    return bleu_score(candidate_corpus, references_corpus)
 
-    train_set, dev_set, test_set = TabularDataset.splits(path='.data/',
-                                                         train='train.annotations.csv', validation='dev.annotations.csv',
-                                                         test='test.annotations.csv', format='csv', fields=[('TRG', TRG)])
 
-    TRG.build_vocab(train_set, min_freq=2)
-
-    annotations = annotations.transpose(1, 0)
-    text = [[TRG.vocab.itos[i] for i in annotation]
-            for annotation in annotations]
-
-    return text
+def wer_count(outputs, targets, TRG):
+    '''
+    word error rate
+    Ref: https://pypi.org/project/jiwer/
+    shape:
+        outputs: [T, N, E]
+        targets: [T, N]
+    '''
+    outputs = outputs.max(2)[1].transpose(0,1)
+    targets = targets.transpose(0,1)
+    candidate_corpus = [' '.join(itos(idx_seq, TRG)) for idx_seq in outputs]
+    reference_corpus = [' '.join(itos(idx_seq, TRG)) for idx_seq in targets]
+    return wer(reference_corpus, candidate_corpus, standardize = True)
